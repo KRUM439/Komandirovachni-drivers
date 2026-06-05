@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Командировъчни — ТИР Шофьори</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0D0F14;--surface:#13161E;--surface2:#1A1E2A;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.14);
+  --text:#F0F0F2;--muted:#7A7F94;
+  --accent:#4F7BFF;--accent2:#7B5EFF;--green:#34D399;
+}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;line-height:1.6;min-height:100vh}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(79,123,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(79,123,255,.03) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;z-index:0}
+.page{position:relative;z-index:1;max-width:900px;margin:0 auto;padding:3rem 1.5rem 5rem}
+
+/* Header */
+.eyebrow{font-size:11px;letter-spacing:2.5px;text-transform:uppercase;color:var(--accent);font-family:'Syne',sans-serif;margin-bottom:.75rem}
+h1{font-family:'Syne',sans-serif;font-size:clamp(2rem,5vw,3.2rem);font-weight:800;line-height:1.05;letter-spacing:-1.5px;margin-bottom:1rem}
+h1 span{background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.sub{color:var(--muted);font-size:14px;max-width:480px;margin-bottom:1.25rem}
+.badge{display:inline-flex;align-items:center;gap:6px;background:rgba(79,123,255,.12);border:1px solid rgba(79,123,255,.25);border-radius:100px;padding:5px 14px;font-size:12px;color:#93B4FF;margin-bottom:2.5rem}
+.badge::before{content:'';width:6px;height:6px;background:var(--accent);border-radius:50%;box-shadow:0 0 8px var(--accent)}
+
+/* Upload */
+.upload-zone{border:1.5px dashed var(--border2);border-radius:20px;padding:2.5rem 2rem;text-align:center;cursor:pointer;transition:all .25s;background:var(--surface);position:relative;overflow:hidden;margin-bottom:1.5rem}
+.upload-zone::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 0%,rgba(79,123,255,.08),transparent 70%);pointer-events:none}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:rgba(79,123,255,.06);transform:translateY(-2px)}
+.upload-icon{width:52px;height:52px;margin:0 auto 1rem;background:rgba(79,123,255,.12);border-radius:14px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(79,123,255,.2)}
+.upload-icon svg{width:24px;height:24px;stroke:var(--accent)}
+.upload-title{font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:700;margin-bottom:5px}
+.upload-sub{color:var(--muted);font-size:13px}
+.upload-filename{margin-top:.75rem;font-size:13px;color:var(--green);display:none}
+input[type=file]{display:none}
+
+/* Alert */
+.alert{background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.25);color:#FCA5A5;border-radius:12px;padding:.875rem 1.25rem;font-size:13px;margin-bottom:1.5rem;display:none}
+
+/* Metrics */
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:12px;margin-bottom:2rem}
+.mc{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:1.25rem;position:relative;overflow:hidden}
+.mc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.mc-label{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.mc-val{font-family:'Syne',sans-serif;font-size:1.8rem;font-weight:800;letter-spacing:-1px;line-height:1}
+.mc-val.g{color:var(--green)}.mc-val.a{color:var(--accent)}
+
+/* Section */
+.sec-label{font-size:10px;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted);margin-bottom:1rem;font-family:'Syne',sans-serif}
+
+/* Country grid */
+.cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(125px,1fr));gap:10px;margin-bottom:2rem}
+.cpill{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:.875rem 1rem}
+.cpill-top{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.cpill-flag{font-size:19px;line-height:1}
+.cpill-name{font-size:11px;color:var(--muted)}
+.cpill-days{font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;line-height:1}
+.cpill-eur{font-size:12px;color:var(--muted);margin-top:2px}
+
+/* Driver cards */
+.dcard{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:1.5rem;margin-bottom:10px;transition:border-color .2s}
+.dcard:hover{border-color:var(--border2)}
+.dtop{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;gap:1rem;flex-wrap:wrap}
+.davatar{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;flex-shrink:0;color:#fff}
+.dinfo{flex:1}
+.dname{font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;letter-spacing:-.3px}
+.dsub{font-size:12px;color:var(--muted);margin-top:2px}
+.dtotal{font-family:'Syne',sans-serif;font-size:1.35rem;font-weight:800;color:var(--green);text-align:right}
+.dtotal-d{font-size:12px;color:var(--muted);text-align:right}
+.dtags{display:flex;flex-wrap:wrap;gap:6px}
+.dtag{display:flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:4px 10px;font-size:12px;color:var(--muted)}
+.dtag strong{color:var(--text);font-weight:500}
+
+/* Export buttons — ALWAYS VISIBLE */
+.export-bar{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:1.25rem 1.5rem;margin-top:1.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem}
+.export-bar-label{font-size:13px;color:var(--muted)}
+.export-bar-label strong{color:var(--text);display:block;font-size:15px;font-weight:500;margin-bottom:2px}
+.export-btns{display:flex;gap:8px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:7px;border-radius:10px;padding:.6rem 1.1rem;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .2s;white-space:nowrap}
+.btn svg{width:15px;height:15px;stroke:currentColor;flex-shrink:0}
+.btn-xlsx{background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.3);color:#6EE7B7}
+.btn-xlsx:hover{background:rgba(52,211,153,.22);border-color:#34D399}
+.btn-xlsx:disabled{opacity:.4;cursor:not-allowed}
+.btn-csv{background:transparent;border:1px solid var(--border2);color:var(--muted)}
+.btn-csv:hover{border-color:var(--accent);color:var(--accent);background:rgba(79,123,255,.06)}
+.btn-csv:disabled{opacity:.4;cursor:not-allowed}
+
+hr{border:none;border-top:1px solid var(--border);margin:2rem 0}
+.hidden{display:none}
+.footer{margin-top:4rem;padding-top:2rem;border-top:1px solid var(--border);font-size:12px;color:var(--muted);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.footer-rate{background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.2);color:#6EE7B7;border-radius:6px;padding:3px 10px;font-size:11px}
+@media(max-width:600px){.page{padding:2rem 1rem 4rem}.dtop{flex-direction:column;gap:.75rem}.dtotal,.dtotal-d{text-align:left}.export-bar{flex-direction:column;align-items:flex-start}}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="eyebrow">Автоматичен калкулатор</div>
+  <h1>Командировъчни<br><span>ТИР Шофьори</span></h1>
+  <p class="sub">Качете Frotcom Excel справка — системата автоматично изчислява дните и сумите по шофьори и държави.</p>
+  <div class="badge">50 EUR на ден извън България</div>
+
+  <!-- Upload -->
+  <div class="upload-zone" id="uploadZone">
+    <div class="upload-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="12" y1="18" x2="12" y2="12"/>
+        <polyline points="9 15 12 12 15 15"/>
+      </svg>
+    </div>
+    <div class="upload-title">Качете Excel файл</div>
+    <div class="upload-sub">Влачете тук или кликнете &nbsp;·&nbsp; .xlsx / .xls</div>
+    <div class="upload-filename" id="uploadFilename"></div>
+    <input type="file" id="fileInput" accept=".xlsx,.xls">
+  </div>
+
+  <div class="alert" id="alertBox"></div>
+
+  <!-- Export bar — ВИНАГИ видим -->
+  <div class="export-bar">
+    <div class="export-bar-label">
+      <strong>Експорт на справката</strong>
+      Качете файл за да активирате
+    </div>
+    <div class="export-btns">
+      <button class="btn btn-xlsx" id="btnXlsx" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Изтегли Excel (.xlsx)
+      </button>
+      <button class="btn btn-csv" id="btnCsv" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        CSV
+      </button>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div id="results" class="hidden" style="margin-top:2rem">
+    <div class="metrics">
+      <div class="mc"><div class="mc-label">Общо дни</div><div class="mc-val a" id="mDays">0</div></div>
+      <div class="mc"><div class="mc-label">Обща сума</div><div class="mc-val g" id="mEur">0 EUR</div></div>
+      <div class="mc"><div class="mc-label">Шофьори</div><div class="mc-val" id="mDrivers">0</div></div>
+      <div class="mc"><div class="mc-label">Период</div><div class="mc-val" id="mPeriod" style="font-size:.95rem;padding-top:6px">—</div></div>
+    </div>
+
+    <div class="sec-label">Разбивка по държави</div>
+    <div class="cgrid" id="countryGrid"></div>
+
+    <hr>
+
+    <div class="sec-label">По шофьори</div>
+    <div id="driverCards"></div>
+  </div>
+
+  <footer class="footer">
+    <span>Командировъчни калкулатор · Frotcom формат</span>
+    <span class="footer-rate">50 EUR / ден извън България</span>
+  </footer>
+</div>
+
+<script>
+const COUNTRIES={
+  'Romania':{flag:'🇷🇴',kw:['Romania']},
+  'Greece':{flag:'🇬🇷',kw:['Greece']},
+  'North Macedonia':{flag:'🇲🇰',kw:['North Macedonia','Macedonia']},
+  'Hungary':{flag:'🇭🇺',kw:['Hungary']},
+  'Poland':{flag:'🇵🇱',kw:['Poland']},
+  'Slovakia':{flag:'🇸🇰',kw:['Slovakia']},
+  'Czechia':{flag:'🇨🇿',kw:['Czechia','Czech Republic']},
+};
+
+function detectCountry(addr){
+  if(!addr||typeof addr!=='string')return null;
+  const last=addr.split(',').pop().trim().toLowerCase();
+  for(const[name,data]of Object.entries(COUNTRIES))
+    if(data.kw.some(k=>last.includes(k.toLowerCase())))return name;
+  return null;
+}
+function toDateStr(val){
+  if(!val)return null;
+  if(val instanceof Date)return val.toISOString().slice(0,10);
+  if(typeof val==='number')return new Date(Math.round((val-25569)*86400000)).toISOString().slice(0,10);
+  if(typeof val==='string'&&val.length>=10)return val.slice(0,10);
+  return null;
+}
+function initials(n){return n.split(' ').filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join('')}
+
+let gSummaries=[],gPeriodLabel='',gVehicles={},gDayDetails={};
+
+function processRows(rows){
+  const drivers={},vehicles={};
+  let cur=null;const dates=[];
+  for(const row of rows){
+    const keys=Object.keys(row);
+    const c0=row[keys[0]];
+    if(typeof c0==='string'&&c0.startsWith('Шофьор:')){
+      cur=c0.replace('Шофьор:','').replace(/\*/g,'').trim();
+      if(!drivers[cur]){drivers[cur]={};vehicles[cur]='Няма автомобил';}
+      const vc=row[keys[12]];
+      if(vc&&typeof vc==='string'&&vc.includes('Автомобил:'))
+        vehicles[cur]=vc.replace('Автомобил:','').trim();
+      continue;
+    }
+    if(!cur)continue;
+    const dt=toDateStr(row[keys[0]]);
+    if(!dt)continue;
+    dates.push(dt);
+    for(const addr of[row[keys[2]]||'',row[keys[6]]||'']){
+      const c=detectCountry(addr);
+      if(c){if(!drivers[cur][c])drivers[cur][c]=new Set();drivers[cur][c].add(dt);}
+    }
+  }
+  const sd=dates.sort();
+  const fmt=d=>d?d.split('-').reverse().join('.'):'—';
+  const period=sd.length?fmt(sd[0])+' – '+fmt(sd[sd.length-1]):'—';
+  let periodLabel='—';
+  if(sd.length){const d=new Date(sd[0]);periodLabel=d.toLocaleDateString('bg-BG',{month:'long',year:'numeric'});}
+  return{drivers,vehicles,period,periodLabel};
+}
+
+function renderResults(drivers,vehicles,period,periodLabel){
+  document.getElementById('alertBox').style.display='none';
+  document.getElementById('results').classList.remove('hidden');
+
+  const ctotals={},summaries=[];let totalDays=0;
+  const dayDetails={};
+
+  for(const[name,countries]of Object.entries(drivers)){
+    let dd=0;const cl=[],dl=[];
+    for(const[c,days]of Object.entries(countries)){
+      if(c==='Bulgaria')continue;
+      const n=days.size;dd+=n;
+      ctotals[c]=(ctotals[c]||0)+n;
+      cl.push({country:c,days:n});
+      for(const date of[...days].sort())dl.push({date,country:c});
+    }
+    dl.sort((a,b)=>a.date.localeCompare(b.date));
+    if(dd>0){totalDays+=dd;summaries.push({name,days:dd,eur:dd*50,countries:cl.sort((a,b)=>b.days-a.days)});dayDetails[name]=dl;}
+  }
+  summaries.sort((a,b)=>b.eur-a.eur);
+  gSummaries=summaries;gPeriodLabel=periodLabel;gVehicles=vehicles;gDayDetails=dayDetails;
+
+  // Активираме бутоните
+  document.getElementById('btnXlsx').disabled=false;
+  document.getElementById('btnCsv').disabled=false;
+  document.querySelector('.export-bar .export-bar-label').innerHTML=
+    '<strong>Справката е готова — изтеглете я</strong>'+summaries.length+' шофьори · '+totalDays+' дни · '+(totalDays*50).toLocaleString()+' EUR';
+
+  document.getElementById('mDays').textContent=totalDays;
+  document.getElementById('mEur').textContent=(totalDays*50).toLocaleString()+' EUR';
+  document.getElementById('mDrivers').textContent=summaries.length;
+  document.getElementById('mPeriod').textContent=period;
+
+  const grid=document.getElementById('countryGrid');grid.innerHTML='';
+  for(const[country,days]of Object.entries(ctotals).sort((a,b)=>b[1]-a[1])){
+    const f=COUNTRIES[country]?.flag||'🌍';
+    grid.innerHTML+=`<div class="cpill"><div class="cpill-top"><span class="cpill-flag">${f}</span><span class="cpill-name">${country}</span></div><div class="cpill-days">${days}</div><div class="cpill-eur">${days*50} EUR</div></div>`;
+  }
+
+  const dc=document.getElementById('driverCards');dc.innerHTML='';
+  for(const s of summaries){
+    const tags=s.countries.map(c=>{const f=COUNTRIES[c.country]?.flag||'🌍';return`<div class="dtag">${f} ${c.country}&nbsp;<strong>${c.days}д</strong>&nbsp;<span style="color:var(--green)">${c.days*50}€</span></div>`;}).join('');
+    dc.innerHTML+=`<div class="dcard"><div class="dtop"><div class="davatar">${initials(s.name)}</div><div class="dinfo"><div class="dname">${s.name}</div><div class="dsub">${s.days} дни в командировка</div></div><div><div class="dtotal">${s.eur.toLocaleString()} EUR</div><div class="dtotal-d">${s.days} × 50 EUR</div></div></div><div class="dtags">${tags}</div></div>`;
+  }
+}
+
+function exportXlsx(){
+  const wb=XLSX.utils.book_new();
+  const BLUE='FF4472C4',WHITE='FFFFFFFF',GOLD='FFFFC000',RATE=50;
+
+  const H=()=>({font:{bold:true,sz:12,color:{rgb:WHITE}},fill:{patternType:'solid',fgColor:{rgb:BLUE}},alignment:{horizontal:'center',wrapText:true}});
+  const B=(sz)=>({font:{bold:true,sz:sz||11}});
+  const G=()=>({font:{bold:true,sz:12},fill:{patternType:'solid',fgColor:{rgb:GOLD}},alignment:{horizontal:'center'}});
+  const C=()=>({alignment:{horizontal:'center'},font:{sz:11}});
+  const N=()=>({font:{sz:11}});
+  const cell=(v,s)=>({v,t:typeof v==='number'?'n':'s',s});
+
+  // Тотал лист
+  const td=[];
+  td.push([cell('ОБОБЩЕНА СПРАВКА ЗА КОМАНДИРОВЪЧНИ',B(14))]);
+  td.push([]);
+  td.push([cell('Период: '+gPeriodLabel,B(11))]);
+  td.push([]);
+  td.push([cell('№',H()),cell('Шофьор',H()),cell('Автомобил',H()),cell('Дни в командировка',H()),cell('Сума (EUR)',H())]);
+  let tDays=0,tEur=0;
+  gSummaries.forEach((s,i)=>{
+    tDays+=s.days;tEur+=s.eur;
+    const v=gVehicles[s.name]||'Няма автомобил';
+    td.push([cell(i+1,C()),cell('*'+s.name,N()),cell(v,N()),cell(s.days,C()),cell(s.eur,C())]);
+  });
+  td.push([cell('',{}),cell('ОБЩО:',G()),cell('',{}),cell(tDays,G()),cell(tEur,G())]);
+  td.push([]);
+  td.push([cell('Дневна ставка: 50 EUR',{font:{sz:10}})]);
+
+  const wsT=XLSX.utils.aoa_to_sheet(td);
+  wsT['!merges']=[{s:{r:0,c:0},e:{r:0,c:4}}];
+  wsT['!cols']=[{wch:8},{wch:30},{wch:25},{wch:20},{wch:15}];
+  XLSX.utils.book_append_sheet(wb,wsT,'Тотал');
+
+  // Лист за всеки шофьор
+  for(const s of gSummaries){
+    const v=gVehicles[s.name]||'Няма автомобил';
+    const days=gDayDetails[s.name]||[];
+    const cm={};for(const d of days)cm[d.country]=(cm[d.country]||0)+1;
+    const BlHdr=(t)=>({font:{bold:true,sz:12,color:{rgb:WHITE}},fill:{patternType:'solid',fgColor:{rgb:BLUE}}});
+
+    const sd=[];
+    sd.push([cell('СПРАВКА ЗА КОМАНДИРОВЪЧНИ НА ШОФЬОРИ',B(14))]);
+    sd.push([]);
+    sd.push([cell('Шофьор: *'+s.name,N())]);
+    sd.push([cell('Автомобил: '+v,N())]);
+    sd.push([]);
+    sd.push([cell('ОБОБЩЕНИЕ',B(12))]);
+    sd.push([cell('Общо дни в командировка:',N()),cell(s.days,N())]);
+    sd.push([cell('Дневна ставка (EUR):',N()),cell(RATE,N())]);
+    sd.push([cell('ОБЩА СУМА (EUR):',B()),cell(s.eur,B(12))]);
+    sd.push([]);
+    sd.push([cell('РАЗБИВКА ПО СТРАНИ',B(12))]);
+    sd.push([cell('Страна',BlHdr()),cell('Брой дни',BlHdr())]);
+    for(const[country,cnt]of Object.entries(cm).sort((a,b)=>b[1]-a[1]))
+      sd.push([cell(country,N()),cell(cnt,N())]);
+    while(sd.length<15)sd.push([]);
+    sd.push([cell('ДЕТАЙЛЕН СПИСЪК НА ДНИТЕ',B(12))]);
+    sd.push([cell('Дата',BlHdr()),cell('Страни',BlHdr()),cell('Сума (EUR)',BlHdr())]);
+    for(const d of days)sd.push([cell(d.date,N()),cell(d.country,N()),cell(RATE,N())]);
+
+    const ws=XLSX.utils.aoa_to_sheet(sd);
+    ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:3}}];
+    ws['!cols']=[{wch:20},{wch:30},{wch:15},{wch:15}];
+    XLSX.utils.book_append_sheet(wb,ws,s.name.slice(0,31));
+  }
+
+  const buf=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+  const a=Object.assign(document.createElement('a'),{
+    href:URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})),
+    download:'komandirovachni_'+new Date().toISOString().slice(0,10)+'.xlsx'
+  });
+  a.click();
+}
+
+function exportCsv(){
+  let csv='\uFEFFШофьор,Държава,Дни,Сума EUR\n';
+  for(const s of gSummaries){
+    for(const c of s.countries)csv+=`"${s.name}","${c.country}",${c.days},${c.days*50}\n`;
+    csv+=`"${s.name}","ОБЩО",${s.days},${s.eur}\n\n`;
+  }
+  Object.assign(document.createElement('a'),{href:URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})),download:'komandirovachni.csv'}).click();
+}
+
+function showAlert(msg){const el=document.getElementById('alertBox');el.textContent=msg;el.style.display='block';}
+
+function handleFile(file){
+  document.getElementById('uploadFilename').style.display='block';
+  document.getElementById('uploadFilename').textContent='✓ '+file.name;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellDates:true});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{defval:null});
+      if(!rows.length){showAlert('Файлът е празен.');return;}
+      const{drivers,vehicles,period,periodLabel}=processRows(rows);
+      const valid=Object.values(drivers).some(c=>Object.keys(c).some(k=>k!=='Bulgaria'));
+      if(!valid){showAlert('Не са намерени командировки извън България.');return;}
+      renderResults(drivers,vehicles,period,periodLabel);
+    }catch(err){showAlert('Грешка: '+err.message);}
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+const zone=document.getElementById('uploadZone'),input=document.getElementById('fileInput');
+zone.addEventListener('click',()=>input.click());
+zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('drag');});
+zone.addEventListener('dragleave',()=>zone.classList.remove('drag'));
+zone.addEventListener('drop',e=>{e.preventDefault();zone.classList.remove('drag');if(e.dataTransfer.files[0])handleFile(e.dataTransfer.files[0]);});
+input.addEventListener('change',e=>{if(e.target.files[0])handleFile(e.target.files[0]);});
+document.getElementById('btnXlsx').addEventListener('click',exportXlsx);
+document.getElementById('btnCsv').addEventListener('click',exportCsv);
+</script>
+</body>
+</html>
